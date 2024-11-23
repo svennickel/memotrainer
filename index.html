@@ -58,10 +58,17 @@
       cursor: pointer;
       transition: background-color 0.3s;
       padding: 8px 16px;
+      align-self: flex-end; /* Align the button to the end of the flex container */
     }
 
     button:hover {
       background-color: #0056b3;
+    }
+
+    .small-button {
+      font-size: 0.8em;
+      padding: 4px 8px;
+      margin-top: 5px;
     }
 
     #output {
@@ -92,6 +99,34 @@
       border: 1px solid #ddd;
       border-radius: 4px;
     }
+
+    #timer {
+      font-size: 1.5em;
+      margin: 10px 0;
+      display: none; /* Hide timer by default */
+    }
+
+    #memo-input {
+      display: none;
+      width: 100%;
+      height: 100px;
+      margin-top: 10px;
+      text-transform: uppercase; /* Make entered characters uppercase */
+    }
+
+    #congratulations {
+      font-size: 1.5em;
+      color: green;
+      display: none;
+    }
+
+    #stop-timer {
+      display: none; /* Hide stop timer button by default */
+    }
+
+    #show-memo {
+      display: none; /* Hide show memo button by default */
+    }
   </style>
 </head>
 
@@ -120,12 +155,27 @@
         <input type="number" id="spacing" min="0" value="10">
       </div>
 
-      <button id="generate">Generate</button>
+      <div>
+        <button id="generate">Generate</button>
+        <button id="generate-timer" class="small-button">+ Timer</button> <!-- New smaller button -->
+      </div>
     </div>
+
+    <div id="timer">00:00:00</div> <!-- Timer display -->
+
+    <div class="options">
+      <button id="enter-memo">Enter Memo</button>
+      <button id="stop-timer">Stop Timer</button>
+      <button id="show-memo">Show Memo</button>
+    </div>
+
+    <textarea id="memo-input" placeholder="Enter your memo here..."></textarea>
 
     <div id="output">
       <span id="output-text"></span>
     </div>
+
+    <div id="congratulations">Congratulations!</div>
 
     <div id="copy-container">
       <span id="copy">&#x2398; Copy</span>
@@ -137,8 +187,20 @@
     const lengthInput = document.getElementById('length');
     const spacingInput = document.getElementById('spacing');
     const generateButton = document.getElementById('generate');
+    const generateTimerButton = document.getElementById('generate-timer'); // New button reference
+    const enterMemoButton = document.getElementById('enter-memo');
+    const stopTimerButton = document.getElementById('stop-timer');
+    const showMemoButton = document.getElementById('show-memo');
     const outputDiv = document.getElementById('output-text'); // Changed to target the inner span
     const copyButton = document.getElementById('copy');
+    const timerDisplay = document.getElementById('timer');
+    const memoInput = document.getElementById('memo-input');
+    const congratulationsDiv = document.getElementById('congratulations');
+
+    let timerInterval;
+    let startTime;
+    let isTimerRunning = false;
+    let generatedString = '';
 
     function generateRandomString(length, charType, spacing) {
       let result = '';
@@ -187,7 +249,103 @@
       }
     }
 
+    function startTimer() {
+      if (isTimerRunning) return;
+      isTimerRunning = true;
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        const elapsedTime = Date.now() - startTime;
+        const hours = Math.floor(elapsedTime / 3600000);
+        const minutes = Math.floor((elapsedTime % 3600000) / 60000);
+        const seconds = Math.floor((elapsedTime % 60000) / 1000);
+        timerDisplay.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }, 1000);
+      stopTimerButton.style.display = 'block'; // Show stop timer button
+    }
+
+    function stopTimer() {
+      if (!isTimerRunning) return;
+      isTimerRunning = false;
+      clearInterval(timerInterval);
+      stopTimerButton.style.display = 'none'; // Hide stop timer button
+      enterMemoButton.style.display = 'block'; // Show enter memo button
+    }
+
+    function resetTimer() {
+      stopTimer();
+      timerDisplay.textContent = '00:00:00';
+    }
+
+    function generate() {
+      const length = parseInt(lengthInput.value);
+      const charType = charTypeSelect.value;
+      const spacing = parseInt(spacingInput.value);
+      generatedString = generateRandomString(length, charType, spacing);
+      outputDiv.textContent = generatedString; // Update the inner span
+      updateUrl();
+      resetTimer();
+      timerDisplay.style.display = 'none'; // Hide timer
+      stopTimerButton.style.display = 'none'; // Hide stop timer button
+      memoInput.style.display = 'none';
+      memoInput.value = '';
+      outputDiv.style.display = 'block';
+      copyButton.style.display = 'block'; // Show copy button
+      congratulationsDiv.style.display = 'none';
+      showMemoButton.style.display = 'none';
+    }
+
+    function generateAndStartTimer() {
+      generate();
+      startTimer();
+      timerDisplay.style.display = 'block'; // Show timer
+    }
+
+    function compareStrings(str1, str2) {
+      return str1.replace(/\s+/g, '') === str2.replace(/\s+/g, '');
+    }
+
     generateButton.addEventListener('click', generate);
+    generateTimerButton.addEventListener('click', generateAndStartTimer); // Event listener for new button
+
+    enterMemoButton.addEventListener('click', () => {
+      enterMemoButton.style.display = 'none';
+      showMemoButton.style.display = 'block';
+      outputDiv.style.display = 'none';
+      copyButton.style.display = 'none'; // Hide copy button
+      memoInput.style.display = 'block';
+      memoInput.focus();
+    });
+
+    showMemoButton.addEventListener('click', () => {
+      memoInput.style.display = 'none';
+      outputDiv.style.display = 'block';
+      copyButton.style.display = 'block'; // Show copy button
+      showMemoButton.style.display = 'none';
+      enterMemoButton.style.display = 'block';
+    });
+
+    stopTimerButton.addEventListener('click', () => {
+      stopTimer();
+      outputDiv.style.display = 'block';
+      copyButton.style.display = 'block'; // Show copy button
+      memoInput.style.display = 'none';
+    });
+
+    memoInput.addEventListener('input', () => {
+      memoInput.value = memoInput.value.toUpperCase(); // Convert input to uppercase
+      if (compareStrings(memoInput.value, generatedString)) {
+        stopTimer();
+        outputDiv.style.display = 'block';
+        copyButton.style.display = 'block'; // Show copy button
+        memoInput.style.display = 'none';
+        congratulationsDiv.style.display = 'block';
+      }
+    });
+
+    // Prevent pasting into the memo input
+    memoInput.addEventListener('paste', (event) => {
+      event.preventDefault();
+    });
 
     copyButton.addEventListener('click', () => {
       navigator.clipboard.writeText(outputDiv.textContent)
@@ -199,15 +357,6 @@
           console.error('Failed to copy text: ', err);
         });
     });
-
-    function generate() {
-      const length = parseInt(lengthInput.value);
-      const charType = charTypeSelect.value;
-      const spacing = parseInt(spacingInput.value);
-      const randomString = generateRandomString(length, charType, spacing);
-      outputDiv.textContent = randomString; // Update the inner span
-      updateUrl();
-    }
 
     // Load settings from URL and generate on page load
     loadFromUrl();
@@ -225,10 +374,19 @@
       }
     });
 
-    // Generate on space key press
+    // Handle key presses
     document.addEventListener('keydown', (event) => {
-      if (event.code === 'Space') {
-        generate();
+      if (memoInput.style.display === 'none') {
+        if (event.key === 't') {
+          generateTimerButton.click();
+        } else if (event.key === 'g') {
+          generateButton.click();
+        } else if (event.key === ' ' || event.key === 'e') {
+          if (isTimerRunning) {
+            event.preventDefault(); // Prevent the default action of the key press
+            enterMemoButton.click();
+          }
+        }
       }
     });
 
@@ -237,8 +395,8 @@
       const length = parseInt(lengthInput.value);
       const charType = charTypeSelect.value;
       const spacing = parseInt(spacingInput.value);
-      const randomString = generateRandomString(length, charType, spacing);
-      outputDiv.textContent = randomString; // Update the inner span
+      generatedString = generateRandomString(length, charType, spacing);
+      outputDiv.textContent = generatedString; // Update the inner span
     });
   </script>
 </body>
