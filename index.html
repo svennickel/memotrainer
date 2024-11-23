@@ -317,6 +317,7 @@
     });
 
     showMemoButton.addEventListener('click', () => {
+      stopTimer();
       memoInput.style.display = 'none';
       outputDiv.style.display = 'block';
       copyButton.style.display = 'block'; // Show copy button
