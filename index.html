@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Memo Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f4f4f9;
+      margin: 0;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .container {
+      background-color: #fff;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      min-width: 50vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .options {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .options>div {
+      margin-bottom: 10px;
+    }
+
+    label {
+      margin-bottom: 5px;
+      white-space: nowrap;
+    }
+
+    select,
+    input {
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      padding: 8px 16px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #output {
+      font-size: 2em;
+      margin-top: 10px;
+      color: #333;
+      word-break: break-word;
+      min-height: 2em;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    
+    #output-text { 
+      text-align: center;
+      display: inline-block; 
+      width: 100%; 
+    }
+
+    #copy-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    #copy {
+      font-size: 1.2em;
+      cursor: pointer;
+      padding: 5px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Memo Generator</h1>
+
+  <div class="container">
+    <div class="options">
+      <div>
+        <label for="charType">Characters:</label>
+        <select id="charType">
+          <option value="A-Z">A-Z</option>
+          <option value="0-9">0-9</option>
+          <option value="A-Z0-9">A-Z0-9</option>
+          <option value="0-1">0-1</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="length">Length:</label>
+        <input type="number" id="length" min="1" value="10">
+      </div>
+
+      <div>
+        <label for="spacing">Spacing:</label>
+        <input type="number" id="spacing" min="0" value="10">
+      </div>
+
+      <button id="generate">Generate</button>
+    </div>
+
+    <div id="output">
+      <span id="output-text"></span>
+    </div>
+
+    <div id="copy-container">
+      <span id="copy">&#x2398; Copy</span>
+    </div>
+  </div>
+
+  <script>
+    const charTypeSelect = document.getElementById('charType');
+    const lengthInput = document.getElementById('length');
+    const spacingInput = document.getElementById('spacing');
+    const generateButton = document.getElementById('generate');
+    const outputDiv = document.getElementById('output-text'); // Changed to target the inner span
+    const copyButton = document.getElementById('copy');
+
+    function generateRandomString(length, charType, spacing) {
+      let result = '';
+      let characters = '';
+      if (charType === 'A-Z') {
+        characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      } else if (charType === '0-9') {
+        characters = '0123456789';
+      } else if (charType === 'A-Z0-9') {
+        characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      } else if (charType === '0-1') {
+        characters = '01';
+      }
+
+      const charactersLength = characters.length;
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        if (spacing > 0 && (i + 1) % spacing === 0 && i !== length - 1) {
+          result += ' ';
+        }
+      }
+      return result;
+    }
+
+    function updateUrl() {
+      const charType = charTypeSelect.value;
+      const length = lengthInput.value;
+      const spacing = spacingInput.value;
+      const newUrl = `${window.location.pathname}?type=${charType}&length=${length}&spacing=${spacing}`;
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    function loadFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const type = urlParams.get('type');
+      const length = urlParams.get('length');
+      const spacing = urlParams.get('spacing');
+      if (type) {
+        charTypeSelect.value = type;
+      }
+      if (length) {
+        lengthInput.value = length;
+      }
+      if (spacing) {
+        spacingInput.value = spacing;
+      }
+    }
+
+    generateButton.addEventListener('click', generate);
+
+    copyButton.addEventListener('click', () => {
+      navigator.clipboard.writeText(outputDiv.textContent)
+        .then(() => {
+          // Optional: Display a success message to the user
+          console.log('Text copied to clipboard!');
+        })
+        .catch(err => {
+          console.error('Failed to copy text: ', err);
+        });
+    });
+
+    function generate() {
+      const length = parseInt(lengthInput.value);
+      const charType = charTypeSelect.value;
+      const spacing = parseInt(spacingInput.value);
+      const randomString = generateRandomString(length, charType, spacing);
+      outputDiv.textContent = randomString; // Update the inner span
+      updateUrl();
+    }
+
+    // Load settings from URL and generate on page load
+    loadFromUrl();
+    generate();
+
+    // Update URL on input changes
+    charTypeSelect.addEventListener('change', updateUrl);
+    lengthInput.addEventListener('input', updateUrl);
+    spacingInput.addEventListener('input', updateUrl);
+
+    // Generate on "Enter" in the length field
+    lengthInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        generate();
+      }
+    });
+
+    // Generate on space key press
+    document.addEventListener('keydown', (event) => {
+      if (event.code === 'Space') {
+        generate();
+      }
+    });
+
+    // Regenerate output when spacing changes
+    spacingInput.addEventListener('input', () => {
+      const length = parseInt(lengthInput.value);
+      const charType = charTypeSelect.value;
+      const spacing = parseInt(spacingInput.value);
+      const randomString = generateRandomString(length, charType, spacing);
+      outputDiv.textContent = randomString; // Update the inner span
+    });
+  </script>
+</body>
+
+</html>
