@@ -96,6 +96,7 @@
       display: flex;
       justify-content: center;
       margin-top: 10px;
+      display: none; /* Hide copy button by default */
     }
 
     #copy {
@@ -133,6 +134,21 @@
 
     #show-memo {
       display: none; /* Hide show memo button by default */
+    }
+
+    #enter-memo {
+      display: none; /* Hide enter memo button by default */
+    }
+
+    #result {
+      display: none;
+      margin-top: 10px;
+      font-family: 'Fira Code', monospace;
+      white-space: pre-wrap;
+    }
+
+    .highlight {
+      background-color: yellow;
     }
   </style>
 </head>
@@ -187,6 +203,8 @@
     <div id="copy-container">
       <span id="copy">&#x2398; Copy Memo</span>
     </div>
+
+    <div id="result"></div>
   </div>
 
   <script>
@@ -203,6 +221,7 @@
     const timerDisplay = document.getElementById('timer');
     const memoInput = document.getElementById('memo-input');
     const congratulationsDiv = document.getElementById('congratulations');
+    const resultDiv = document.getElementById('result');
 
     let timerInterval;
     let startTime;
@@ -268,7 +287,8 @@
         generatedString = decompressString(memo);
         outputDiv.textContent = generatedString;
         outputDiv.style.display = 'block';
-        copyButton.style.display = 'block';
+        copyButton.parentElement.style.display = 'flex'; // Show copy button
+        enterMemoButton.style.display = 'block'; // Show enter memo button
       }
     }
 
@@ -312,9 +332,11 @@
       memoInput.style.display = 'none';
       memoInput.value = '';
       outputDiv.style.display = 'block';
-      copyButton.style.display = 'block'; // Show copy button
+      copyButton.parentElement.style.display = 'flex'; // Show copy button
       congratulationsDiv.style.display = 'none';
       showMemoButton.style.display = 'none';
+      enterMemoButton.style.display = 'block'; // Show enter memo button
+      resultDiv.style.display = 'none'; // Hide result div
     }
 
     function generateAndStartTimer() {
@@ -338,7 +360,33 @@
         }
       }
       outputDiv.textContent = spacedString;
+      if (resultDiv.style.display === 'block') {
+        highlightDifferences();
+      }
       updateUrl();
+    }
+
+    function highlightDifferences() {
+      const enteredText = memoInput.value.replace(/\s+/g, '');
+      const originalText = generatedString.replace(/\s+/g, '');
+      const spacing = parseInt(spacingInput.value);
+      let highlightedText = '';
+      let spacedOriginalText = '';
+
+      for (let i = 0; i < originalText.length; i++) {
+        if (enteredText[i] !== originalText[i]) {
+          highlightedText += `<span class="highlight">${originalText[i]}</span>`;
+        } else {
+          highlightedText += originalText[i];
+        }
+        spacedOriginalText += originalText[i];
+        if (spacing > 0 && (i + 1) % spacing === 0 && i !== originalText.length - 1) {
+          highlightedText += ' ';
+          spacedOriginalText += ' ';
+        }
+      }
+
+      resultDiv.innerHTML = highlightedText;
     }
 
     generateButton.addEventListener('click', generate);
@@ -348,35 +396,39 @@
       enterMemoButton.style.display = 'none';
       showMemoButton.style.display = 'block';
       outputDiv.style.display = 'none';
-      copyButton.style.display = 'none'; // Hide copy button
+      copyButton.parentElement.style.display = 'none'; // Hide copy button
       memoInput.style.display = 'block';
       memoInput.focus();
     });
 
     showMemoButton.addEventListener('click', () => {
       stopTimer();
-      memoInput.style.display = 'none';
-      outputDiv.style.display = 'block';
-      copyButton.style.display = 'block'; // Show copy button
+      memoInput.style.display = 'block';
+      resultDiv.style.display = 'block';
+      highlightDifferences();
       showMemoButton.style.display = 'none';
-      enterMemoButton.style.display = 'block';
+      enterMemoButton.style.display = 'none';
     });
 
     stopTimerButton.addEventListener('click', () => {
       stopTimer();
       outputDiv.style.display = 'block';
-      copyButton.style.display = 'block'; // Show copy button
+      copyButton.parentElement.style.display = 'flex'; // Show copy button
       memoInput.style.display = 'none';
     });
 
     memoInput.addEventListener('input', () => {
       memoInput.value = memoInput.value.toUpperCase(); // Convert input to uppercase
+      highlightDifferences();
       if (compareStrings(memoInput.value, generatedString)) {
         stopTimer();
         outputDiv.style.display = 'block';
-        copyButton.style.display = 'block'; // Show copy button
+        copyButton.parentElement.style.display = 'flex'; // Show copy button
         memoInput.style.display = 'none';
         congratulationsDiv.style.display = 'block';
+        resultDiv.style.display = 'none';
+        enterMemoButton.style.display = 'none'; // Hide enter memo button
+        showMemoButton.style.display = 'none'; // Hide show memo button
       }
     });
 
