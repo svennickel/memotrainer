@@ -8,6 +8,8 @@
   <link rel="manifest" href="/memotrainer/site.webmanifest">
   <title>Memo Generator</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400&display=swap');
+
     body {
       font-family: sans-serif;
       display: flex;
@@ -81,7 +83,7 @@
       color: #333;
       word-break: break-word;
       min-height: 2em;
-      font-family: 'Courier New', Courier, monospace;
+      font-family: 'Fira Code', monospace;
     }
     
     #output-text { 
@@ -116,6 +118,7 @@
       height: 100px;
       margin-top: 10px;
       text-transform: uppercase; /* Make entered characters uppercase */
+      font-family: 'Fira Code', monospace;
     }
 
     #congratulations {
@@ -229,11 +232,20 @@
       return result;
     }
 
+    function compressString(str) {
+      return encodeURIComponent(btoa(str));
+    }
+
+    function decompressString(str) {
+      return atob(decodeURIComponent(str));
+    }
+
     function updateUrl() {
       const charType = charTypeSelect.value;
       const length = lengthInput.value;
       const spacing = spacingInput.value;
-      const newUrl = `${window.location.pathname}?type=${charType}&length=${length}&spacing=${spacing}`;
+      const compressedMemo = compressString(generatedString);
+      const newUrl = `${window.location.pathname}?type=${charType}&length=${length}&spacing=${spacing}&memo=${compressedMemo}`;
       window.history.replaceState({}, '', newUrl);
     }
 
@@ -242,6 +254,7 @@
       const type = urlParams.get('type');
       const length = urlParams.get('length');
       const spacing = urlParams.get('spacing');
+      const memo = urlParams.get('memo');
       if (type) {
         charTypeSelect.value = type;
       }
@@ -250,6 +263,12 @@
       }
       if (spacing) {
         spacingInput.value = spacing;
+      }
+      if (memo) {
+        generatedString = decompressString(memo);
+        outputDiv.textContent = generatedString;
+        outputDiv.style.display = 'block';
+        copyButton.style.display = 'block';
       }
     }
 
@@ -306,6 +325,20 @@
 
     function compareStrings(str1, str2) {
       return str1.replace(/\s+/g, '') === str2.replace(/\s+/g, '');
+    }
+
+    function updateSpacing() {
+      const spacing = parseInt(spacingInput.value);
+      let trimmedString = generatedString.replace(/\s+/g, '');
+      let spacedString = '';
+      for (let i = 0; i < trimmedString.length; i++) {
+        spacedString += trimmedString[i];
+        if (spacing > 0 && (i + 1) % spacing === 0 && i !== trimmedString.length - 1) {
+          spacedString += ' ';
+        }
+      }
+      outputDiv.textContent = spacedString;
+      updateUrl();
     }
 
     generateButton.addEventListener('click', generate);
@@ -365,12 +398,11 @@
 
     // Load settings from URL and generate on page load
     loadFromUrl();
-    generate();
 
     // Update URL on input changes
     charTypeSelect.addEventListener('change', updateUrl);
     lengthInput.addEventListener('input', updateUrl);
-    spacingInput.addEventListener('input', updateUrl);
+    spacingInput.addEventListener('input', updateSpacing);
 
     // Generate on "Enter" in the length field
     lengthInput.addEventListener('keydown', (event) => {
@@ -396,13 +428,7 @@
     });
 
     // Regenerate output when spacing changes
-    spacingInput.addEventListener('input', () => {
-      const length = parseInt(lengthInput.value);
-      const charType = charTypeSelect.value;
-      const spacing = parseInt(spacingInput.value);
-      generatedString = generateRandomString(length, charType, spacing);
-      outputDiv.textContent = generatedString; // Update the inner span
-    });
+    spacingInput.addEventListener('input', updateSpacing);
   </script>
 </body>
 
